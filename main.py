@@ -1,6 +1,7 @@
 import configparser
 import argparse
 import train
+import split
 import numpy as np
 
 
@@ -25,7 +26,11 @@ if __name__ == "__main__":
         print("==> Error reading config file")
         exit()
 
-    if args.operation == "p" or args.operation == "predict":
+    if args.operation == "a" or args.operation == "augment":
+        print("Here")
+    elif args.operation == "s" or args.operation == "split":
+        split.splitData(config['file_paths']['dataset'])
+    elif args.operation == "p" or args.operation == "predict":
         train = train.Trainer(model_path=config['file_paths']['model'], labels=np.asarray([float(x) for x in config['annotation']['labels'].split(",")], dtype=np.float32))
         train.predict(config['file_paths']['predict_in'], config['file_paths']['predict_out'], config['annotation']['output_annotation'])
     else:

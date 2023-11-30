@@ -5,6 +5,8 @@ from matplotlib import gridspec
 from pathlib import Path
 import numpy as np
 import cv2
+import os
+import random as r
 from scipy import ndimage
 from skimage import measure
 
@@ -138,9 +140,15 @@ def adjustment_center(position, half_crop, jitter, upper_bounds):
 
 if __name__ == "__main__":
     # Variables
-    original_imgs = "D:/02.Datasets/Stomata/00.Dataset/Poplar/Annotated/"
-    sample_dir = original_imgs + "train_samples/"
-    mask_dir = original_imgs + "train_mask/"
+    original_imgs = "C:/Users/jonat/Documents/stomata/wheat/"
+    sample_dir = original_imgs + "data_samples/"
+    mask_dir = original_imgs + "data_mask/"
+
+    if not os.path.exists(sample_dir):
+        os.makedirs(sample_dir)
+
+    if not os.path.exists(mask_dir):
+        os.makedirs(mask_dir)
 
     original = glob.glob(original_imgs + "*.jpg")
 
@@ -234,16 +242,80 @@ if __name__ == "__main__":
                     mask_cropped = mask_cropped.transpose(Image.FLIP_TOP_BOTTOM)
 
             # Perform random filter with 20% probability
-            if np.random.randint(5) == 3:
-                choice = np.random.randint(5)
-                if choice == 1: original_cropped = original_cropped.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
-                #elif choice == 2: original_cropped = original_cropped.filter(ImageFilter.GaussianBlur(radius=np.random.randint(0,2)))
-                elif choice == 3:
-                    enhancer = ImageEnhance.Contrast(original_cropped)
-                    original_cropped = enhancer.enhance(np.random.uniform(0.5,1))
-                elif choice == 4:
-                    enhancer = ImageEnhance.Sharpness(original_cropped)
-                    original_cropped = enhancer.enhance(np.random.uniform(0.5,1.5))
+            choice = np.random.randint(4)
+            if choice == 1:
+                original_cropped = original_cropped.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+
+            choice = np.random.randint(4)
+            if choice == 2:
+                open_cv_image = np.array(original_cropped)
+                # Convert RGB to BGR
+                open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+
+                invGamma = 1.0 / np.random.uniform(0.2, 2)
+
+                table = [((i / 255) ** invGamma) * 255 for i in range(256)]
+                table = np.array(table, np.uint8)
+
+                open_cv_image = cv2.LUT(open_cv_image, table)
+
+                # Convert back
+                original_cropped = Image.fromarray(open_cv_image)
+
+            choice = np.random.randint(4)
+            if choice == 2:
+                subChoice = np.random.randint(0,4)
+                if subChoice == 0:
+                    original_cropped = original_cropped.filter(ImageFilter.GaussianBlur(radius=np.random.randint(0,2)))
+                else:
+                    open_cv_image = np.array(original_cropped)
+                    # Convert RGB to BGR
+                    open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+
+                    shift = r.randrange(3,9,2)
+
+                    if subChoice == 1:
+                        open_cv_image=cv2.blur(open_cv_image,(shift,shift))
+                    if subChoice == 2:
+                        open_cv_image=cv2.medianBlur(open_cv_image,shift)
+                    if subChoice == 3:
+                        d = r.randrange(1,60,2)
+                        open_cv_image=cv2.bilateralFilter(open_cv_image, d, 75,75)
+
+
+                    original_cropped = Image.fromarray(open_cv_image)
+
+            choice = np.random.randint(3)
+            if choice == 2:
+                enhancer = ImageEnhance.Contrast(original_cropped)
+                original_cropped = enhancer.enhance(np.random.uniform(0.5,1))
+
+            choice = np.random.randint(3)
+            if choice == 2:
+                enhancer = ImageEnhance.Sharpness(original_cropped)
+                original_cropped = enhancer.enhance(np.random.uniform(0.5,1.5))
+
+
+            choice = np.random.randint(3)
+            choice = 2
+            if choice == 2:
+                open_cv_image = np.array(original_cropped)
+                # Convert RGB to BGR
+                open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+
+                # Random kernel
+                shift = r.randrange(3,10,2)
+                kernel = np.ones((shift, shift), np.uint8)
+
+                subChoice = np.random.randint(0,2)
+                if subChoice == 0:
+                    open_cv_image = cv2.dilate(open_cv_image,kernel,iterations = 1)
+                if subChoice == 1:
+                    open_cv_image = cv2.erode(open_cv_image,kernel,iterations = 1)
+                # Convert back
+                original_cropped = Image.fromarray(open_cv_image)
+
+
 
 
             original_cropped.save(sample_dir + img_name + "_" + str(i) + ".png", subsampling=0, quality=100)
